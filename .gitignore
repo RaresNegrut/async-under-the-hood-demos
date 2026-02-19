@@ -1,0 +1,43 @@
+# Visual Studio / .NET
+.vs/
+.vscode/
+
+## Build results
+**/bin/
+**/obj/
+
+## Visual Studio files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## NuGet
+packages/
+.nuget/
+*.nupkg
+project.lock.json
+project.assets.json
+
+## Rider
+.idea/
+
+## Test results
+TestResults/
+*.trx
+
+## Publish outputs
+publish/
+*.publish/
+
+## Logs
+*.log
+
+## OS generated files
+Thumbs.db
+.DS_Store
+
+# Ignore build output and debug symbols
+*.exe
+*.dll
+*.pdb
