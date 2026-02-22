@@ -31,6 +31,8 @@ for (int i = 0; i < N; i++)
 {
     blocking[i] = Task.Run(() => Thread.Sleep(WaitMs));
 }
+await Task.Delay(100); // let the pool start scheduling
+PrintThreadPoolSnapshot("During blocking (threads held hostage):");
 await Task.WhenAll(blocking);
 sw.Stop();
 Console.WriteLine($"  Elapsed: {sw.ElapsedMilliseconds} ms");

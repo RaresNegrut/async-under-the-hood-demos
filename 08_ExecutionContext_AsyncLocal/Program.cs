@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 Console.WriteLine("=== DEMO 08: ExecutionContext flow + AsyncLocal<T> (and why ThreadLocal breaks) ===");
 Console.WriteLine();
 
-static readonly AsyncLocal<string?> _asyncLocal = new();
-static readonly ThreadLocal<string?> _threadLocal = new();
+AsyncLocal<string?> _asyncLocal = new();
+ThreadLocal<string?> _threadLocal = new();
 
 _asyncLocal.Value = "Alice";
 _threadLocal.Value = "Alice";

@@ -34,26 +34,29 @@ await DoWorkAwait(throwInStep2: false);
 
 Console.WriteLine();
 Console.WriteLine("Case B: error path (compare exception shape)");
+
+// Use .Wait() so the AggregateException is NOT unwrapped (this is what UI code does with .Result)
 try
 {
-    await DoWorkTPL(throwInStep2: true);
+    DoWorkTPL(throwInStep2: true).Wait();
 }
-catch (Exception ex)
+catch (AggregateException ae)
 {
-    Console.WriteLine($"TPL threw: {ex.GetType().Name}");
-    Console.WriteLine($"Message : {ex.Message}");
-    if (ex is AggregateException ae)
-        Console.WriteLine($"AggregateException.Inner: {ae.InnerException?.GetType().Name}: {ae.InnerException?.Message}");
+    Console.WriteLine($"TPL + .Wait() threw: {ae.GetType().Name}");
+    Console.WriteLine($"  Message  : {ae.Message}");
+    Console.WriteLine($"  Inner[0] : {ae.InnerExceptions[0].GetType().Name}: {ae.InnerExceptions[0].Message}");
+    Console.WriteLine("  (.Wait()/.Result wraps exceptions in AggregateException — you must unwrap manually)");
 }
 
+// With await, the infrastructure unwraps AggregateException for you
 try
 {
     await DoWorkAwait(throwInStep2: true);
 }
 catch (Exception ex)
 {
-    Console.WriteLine($"await threw: {ex.GetType().Name}");
-    Console.WriteLine($"Message   : {ex.Message}");
+    Console.WriteLine($"await threw: {ex.GetType().Name}  (clean, unwrapped automatically)");
+    Console.WriteLine($"  Message  : {ex.Message}");
 }
 
 Console.WriteLine();
