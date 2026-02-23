@@ -1,87 +1,74 @@
-using System;
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Running;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
 
-internal static class Program
+BenchmarkRunner.Run<TitleCacheBenchmark>();
+
+[MemoryDiagnoser]
+[SimpleJob(warmupCount: 3, iterationCount: 10)]
+public class TitleCacheBenchmark
 {
-    private static readonly Dictionary<int, int> Cache = new();
+    private static readonly HttpClient _httpClient = new();
+    private readonly Dictionary<string, string> _cache = new();
 
-    private static void Main()
+    [GlobalSetup]
+    public async Task Setup()
     {
-        Console.WriteLine("=== DEMO 11: ValueTask<T> fast path (allocation story) ===");
-        Console.WriteLine("Goal: show why ValueTask<T> can remove allocations when results are already available.");
-        Console.WriteLine();
-
-        Cache[1] = 123;
-
-        const int Iter = 200_000;
-
-        // Warm-up
-        _ = GetCachedAsTask(1).GetAwaiter().GetResult();
-        _ = GetCachedAsValueTask(1).GetAwaiter().GetResult();
-
-        long bytesTask = MeasureAllocations(() =>
-        {
-            int checksum = 0;
-            for (int i = 0; i < Iter; i++)
-                checksum += GetCachedAsTask(1).GetAwaiter().GetResult();
-            Consume(checksum);
-        });
-
-        long bytesValueTask = MeasureAllocations(() =>
-        {
-            int checksum = 0;
-            for (int i = 0; i < Iter; i++)
-                checksum += GetCachedAsValueTask(1).GetAwaiter().GetResult();
-            Consume(checksum);
-        });
-
-        Console.WriteLine($"Hot path (cache hit) over {Iter:N0} calls:");
-        Console.WriteLine($"  Task<int>      allocated: {bytesTask:N0} bytes  (~{(double)bytesTask / Iter:F2} bytes/call)");
-        Console.WriteLine($"  ValueTask<int> allocated: {bytesValueTask:N0} bytes  (~{(double)bytesValueTask / Iter:F2} bytes/call)");
-
-        Console.WriteLine();
-        Console.WriteLine("Cold path (cache miss) — ValueTask still needs a Task when it truly suspends:");
-        Cache.Remove(2);
-        var vt = GetCachedAsValueTask(2);
-        var r = vt.AsTask().GetAwaiter().GetResult();
-        Console.WriteLine($"  Miss result: {r} (ValueTask wrapped a Task on the slow path)");
-
-        Console.WriteLine();
-        Console.WriteLine("Key observation:");
-        Console.WriteLine("- ValueTask<T> is about the synchronous-completion fast path (e.g., caches).");
-        Console.WriteLine("- On real async suspension, it still allocates (by falling back to a Task).");
-        Console.WriteLine("- Correctness rule: treat arbitrary ValueTask as 'await once' (don’t cache/await twice).");
+        // Prime the cache with a real network call so the benchmarks
+        // only measure the hot (cache-hit) path.
+        var html = await _httpClient.GetStringAsync("https://example.com");
+        _cache["https://example.com"] = ExtractTitle(html);
     }
 
-    private static Task<int> GetCachedAsTask(int key)
-        => Cache.TryGetValue(key, out var v)
-            ? Task.FromResult(v)                 // allocates a Task<T>
-            : SlowFetchAsync(key);
+    // ── The two implementations under test ──────────────────────────
 
-    private static ValueTask<int> GetCachedAsValueTask(int key)
-        => Cache.TryGetValue(key, out var v)
-            ? new ValueTask<int>(v)             // no allocation
-            : new ValueTask<int>(SlowFetchAsync(key)); // falls back to Task on slow path
-
-    private static async Task<int> SlowFetchAsync(int key)
+    Task<string> GetTitleTaskAsync(string url)
     {
-        // Simulate I/O
-        await Task.Delay(30).ConfigureAwait(false);
-        Cache[key] = key * 10;
-        return Cache[key];
+        if (_cache.TryGetValue(url, out var cached))
+            return Task.FromResult(cached);
+
+        return FetchTitleAsync(url);
     }
 
-    private static long MeasureAllocations(Action body)
+    ValueTask<string> GetTitleValueTaskAsync(string url)
     {
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        body();
-        return GC.GetAllocatedBytesForCurrentThread() - before;
+        if (_cache.TryGetValue(url, out var cached))
+            return new ValueTask<string>(cached);
+
+        return new ValueTask<string>(FetchTitleAsync(url));
     }
 
-    private static void Consume(int value)
+    async Task<string> FetchTitleAsync(string url)
     {
-        // Prevent JIT from optimizing away the loop.
-        if (value == int.MinValue) Console.WriteLine(value);
+        var html = await _httpClient.GetStringAsync(url);
+        var title = ExtractTitle(html);
+        _cache[url] = title;
+        return title;
+    }
+
+    static string ExtractTitle(string html)
+    {
+        const string open = "<title>";
+        const string close = "</title>";
+        var start = html.IndexOf(open, System.StringComparison.OrdinalIgnoreCase);
+        var end = html.IndexOf(close, System.StringComparison.OrdinalIgnoreCase);
+        if (start < 0 || end < 0) return "(no title)";
+        return html[(start + open.Length)..end].Trim();
+    }
+
+    // ── Benchmarks ──────────────────────────────────────────────────
+
+    [Benchmark(Baseline = true)]
+    public async Task<string> Task_CacheHit()
+    {
+        return await GetTitleTaskAsync("https://example.com");
+    }
+
+    [Benchmark]
+    public async Task<string> ValueTask_CacheHit()
+    {
+        return await GetTitleValueTaskAsync("https://example.com");
     }
 }
