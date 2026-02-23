@@ -1,9 +1,6 @@
-using System;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 
-Console.WriteLine("=== DEMO 04: CancellationToken (cooperative; must be observed + propagated) ===");
+Console.WriteLine("CancellationToken (cooperative; must be observed + propagated)");
 Console.WriteLine();
 
 using var cts = new CancellationTokenSource();

@@ -1,8 +1,4 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
-Console.WriteLine("=== DEMO 08: ExecutionContext flow + AsyncLocal<T> (and why ThreadLocal breaks) ===");
+Console.WriteLine("ExecutionContext flow + AsyncLocal<T> (Why ThreadLocal breaks) ===");
 Console.WriteLine();
 
 AsyncLocal<string?> _asyncLocal = new();
@@ -24,7 +20,10 @@ Console.WriteLine($"  AsyncLocal : {_asyncLocal.Value}   (flows with ExecutionCo
 Console.WriteLine($"  ThreadLocal: {_threadLocal.Value ?? "<null>"} (tied to physical thread)");
 
 Console.WriteLine();
-Console.WriteLine("Copy-on-write demo: child flow inherits, but changes don't propagate back.");
+Console.ReadKey();
+Console.WriteLine("=============================");
+Console.WriteLine("Copy-on-write demo: child flow inherits, but changes don't propagate \"outward\"");
+
 _asyncLocal.Value = "Parent(Alice)";
 Console.WriteLine($"  Parent before Task.Run: {_asyncLocal.Value}");
 
@@ -40,5 +39,3 @@ Console.WriteLine($"  Parent after Task.Run : {_asyncLocal.Value}");
 Console.WriteLine();
 Console.WriteLine("Key observation:");
 Console.WriteLine("- ExecutionContext is captured at await and restored on resume.");
-Console.WriteLine("- AsyncLocal stores ambient data on that logical async flow.");
-Console.WriteLine("- ThreadLocal is a trap in async code because threads can change.");

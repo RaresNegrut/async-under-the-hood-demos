@@ -1,6 +1,4 @@
-using System;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 
 Console.WriteLine("=== DEMO 09: The awaitable pattern (custom awaiter) ===");
 Console.WriteLine("Goal: await is pattern-based (GetAwaiter + IsCompleted + OnCompleted + GetResult).");
