@@ -53,13 +53,10 @@ public class MainForm : Form
         Controls.AddRange(new Control[] { _lblInfo, _btnDeadlock, _btnCorrect, _lblStatus });
     }
 
-    // ──────────────────────────────────────────────
-    // ❌ THE CLASSIC DEADLOCK — DON'T DO THIS
-    // ──────────────────────────────────────────────
     private void OnDeadlockClick(object? sender, EventArgs e)
     {
         _lblStatus.Text =
-            "⏳ Calling SomeAsync().Result — UI thread is now BLOCKED.\n"
+            "Calling SomeAsync().Result — UI thread is now BLOCKED.\n"
           + "The continuation needs this thread → DEADLOCK.\n"
           + "App will freeze — you'll have to kill it.";
         _lblStatus.Refresh();           // force repaint before we freeze
@@ -73,7 +70,7 @@ public class MainForm : Form
 
     private async void OnCorrectClick(object? sender, EventArgs e)
     {
-        _lblStatus.Text = "⏳ Awaiting SomeAsync()...";
+        _lblStatus.Text = "Awaiting SomeAsync()...";
 
         try
         {
@@ -89,9 +86,7 @@ public class MainForm : Form
         }
     }
 
-    // ──────────────────────────────────────────────
-    // Shared async method
-    // ──────────────────────────────────────────────
+    // Shared Async method
     private async Task<string> SomeAsync()
     {
         var ctx = SynchronizationContext.Current?.GetType().Name ?? "null";
@@ -103,7 +98,7 @@ public class MainForm : Form
         // 3. Continuation tries to post back to the UI thread
         Debug.WriteLine($"SomeAsync resumed on thread {Environment.CurrentManagedThreadId}");
 
-        return $"✅ Done on thread {Environment.CurrentManagedThreadId} at {DateTime.Now:T}\n"
+        return $" Done on thread {Environment.CurrentManagedThreadId} at {DateTime.Now:T}\n"
              + $"SynchronizationContext: {SynchronizationContext.Current?.GetType().Name ?? "null"}";
     }
 

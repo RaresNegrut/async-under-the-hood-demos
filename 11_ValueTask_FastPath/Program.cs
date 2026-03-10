@@ -63,12 +63,12 @@ public class TitleCacheBenchmark
     [Benchmark(Baseline = true)]
     public async Task<string> Task_CacheHit()
     {
-        return await GetTitleTaskAsync("https://example.com");
+        return await GetTitleTaskAsync("https://google.com");
     }
 
     [Benchmark]
     public async Task<string> ValueTask_CacheHit()
     {
-        return await GetTitleValueTaskAsync("https://example.com");
+        return await GetTitleValueTaskAsync("https://google.com");
     }
 }
