@@ -4,15 +4,15 @@ Console.WriteLine("CancellationToken (cooperative; must be observed + propagated
 Console.WriteLine();
 
 using var cts = new CancellationTokenSource();
-cts.CancelAfter(TimeSpan.FromMilliseconds(350));
+cts.CancelAfter(TimeSpan.FromMilliseconds(100));
 
 try
 {
-    await IoLikeWorkAsync(cts.Token);
+    await IoLikeWork(cts.Token);
 }
 catch (OperationCanceledException)
 {
-    Console.WriteLine("I/O-like work canceled (Task.Delay observed the token).");
+    Console.WriteLine("I/O-like work canceled (IoLikeWork observed the token).");
 }
 
 Console.WriteLine();
@@ -32,11 +32,19 @@ Console.WriteLine();
 Console.WriteLine("Key observation:");
 Console.WriteLine("- Cancellation is cooperative: pass the token everywhere and check it at boundaries.");
 
-static async Task IoLikeWorkAsync(CancellationToken ct)
+static async Task IoLikeWork(CancellationToken ct)
 {
-    Console.WriteLine("Starting I/O-like work (await Task.Delay with token)...");
-    await Task.Delay(5_000, ct);
-    Console.WriteLine("You should never see this line.");
+    var client = new HttpClient();
+
+    ct.Register(() =>
+    {
+        client.CancelPendingRequests();
+        Console.WriteLine("Request cancelled!");
+    });
+
+    Console.WriteLine("Starting request.");
+    await client.GetStringAsync(new Uri("http://www.contoso.com"));
+    Console.WriteLine("never getting here");
 }
 
 static void CpuBoundWork(CancellationToken ct)

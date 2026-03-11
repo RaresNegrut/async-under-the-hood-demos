@@ -60,7 +60,7 @@ public class MainForm : Form
           + "The continuation needs this thread → DEADLOCK.\n"
           + "App will freeze — you'll have to kill it.";
         _lblStatus.Refresh();           // force repaint before we freeze
-
+        // DEADLOCK EXPLANATION:
         // 1. This blocks the UI thread, waiting for the Task to finish
         var result = SomeAsync().Result;
 
@@ -75,7 +75,7 @@ public class MainForm : Form
         try
         {
             var result = await SomeAsync().ConfigureAwait(false);
-            _lblStatus.Text = result; // UI thread is FREE while waiting
+            _lblStatus.Text = result; // Pitfall: Thread pool thread cannot update UI directly, but we used ConfigureAwait(false) to avoid capturing the context, so we are on a thread pool thread here.
         }
         catch (Exception ioex)
         {
@@ -94,7 +94,7 @@ public class MainForm : Form
 
         // 2. Captures the current SynchronizationContext (WinForms UI context)
         await Task.Delay(1000);
-
+        // We resume on UI thread
         // 3. Continuation tries to post back to the UI thread
         Debug.WriteLine($"SomeAsync resumed on thread {Environment.CurrentManagedThreadId}");
 
